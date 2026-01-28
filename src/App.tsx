@@ -1,11 +1,26 @@
+import { RouterProvider } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ThemeProvider } from '@/features/theme/ThemeProvider'
+import { Toaster } from '@/components/ui/toaster'
+import { router } from '@/app/routes'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60,
+      retry: 1,
+    },
+  },
+})
+
 function App() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-foreground">SimpleNavi</h1>
-        <p className="mt-2 text-muted-foreground">導航頁面系統</p>
-      </div>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <RouterProvider router={router} />
+        <Toaster />
+      </ThemeProvider>
+    </QueryClientProvider>
   )
 }
 
