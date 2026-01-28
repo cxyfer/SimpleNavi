@@ -24,7 +24,7 @@ export function LinkCard({ link }: LinkCardProps) {
       target="_blank"
       rel="noopener noreferrer"
       onClick={handleClick}
-      className="group flex items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent"
+      className="group flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-primary/20"
     >
       <Avatar className="h-10 w-10">
         {!imgError && (
