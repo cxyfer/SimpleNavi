@@ -216,7 +216,7 @@ npx wrangler pages deploy dist
 
 ### Phase 2: 數據庫設計
 - [x] 2.1 建立 Migration 檔案
-- [ ] 2.2 建立 D1 Database
+- [x] 2.2 建立 D1 Database
 - [x] 2.3 建立種子數據
 
 ### Phase 3: API 實現
@@ -238,6 +238,6 @@ npx wrangler pages deploy dist
 - [x] 5.3 深色模式
 
 ### Phase 6: 部署與驗證
-- [ ] 6.1 環境變數設置
-- [ ] 6.2 部署到 Cloudflare Pages
+- [x] 6.1 環境變數設置
+- [x] 6.2 部署到 Cloudflare Pages
 - [ ] 6.3 驗證清單
