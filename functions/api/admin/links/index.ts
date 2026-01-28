@@ -1,6 +1,6 @@
-import type { Env } from '../../_lib/types'
-import { json, error } from '../../_lib/response'
-import type { Link } from '../../_lib/db'
+import type { Env } from '../../../_lib/types'
+import { json, error } from '../../../_lib/response'
+import type { Link } from '../../../_lib/db'
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { results } = await context.env.DB.prepare(
