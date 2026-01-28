@@ -1,6 +1,6 @@
 import type { Env } from '../_lib/types'
 import { getFavicon } from '../_lib/favicon'
-import { json, error } from '../_lib/response'
+import { error } from '../_lib/response'
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const url = new URL(context.request.url)
@@ -15,5 +15,12 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     return error('Favicon not found', 404)
   }
 
-  return json({ url: faviconUrl })
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: faviconUrl,
+      'Cache-Control': 'public, max-age=604800',
+    },
+  })
 }
+
