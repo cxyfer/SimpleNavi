@@ -18,6 +18,7 @@
 | 狀態管理 | TanStack Query (React Query) | ^5.0.0 |
 | 路由 | React Router | ^6.0.0 |
 | 表單驗證 | React Hook Form + Zod | ^7.0.0 / ^3.0.0 |
+| 密碼雜湊 | bcryptjs (純 JS) | ^2.4.0 |
 
 ## 功能需求
 
@@ -71,13 +72,13 @@ CREATE TABLE links (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX idx_links_category_sort ON links(category_id, sort_order);
-CREATE UNIQUE INDEX idx_links_url ON links(url);
+CREATE INDEX idx_links_category_sort ON links(category_id, sort_order, id);
+CREATE INDEX idx_links_url ON links(url);
 
--- click_stats_daily: 每日點擊彙總
+-- click_stats_daily: 每日點擊彙總 (UTC 時區)
 CREATE TABLE click_stats_daily (
-  link_id INTEGER NOT NULL REFERENCES links(id),
-  day TEXT NOT NULL, -- YYYY-MM-DD
+  link_id INTEGER NOT NULL REFERENCES links(id) ON DELETE CASCADE,
+  day TEXT NOT NULL CHECK(day GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]-[0-3][0-9]'), -- YYYY-MM-DD (UTC)
   count INTEGER NOT NULL DEFAULT 0,
   last_clicked_at TEXT,
   PRIMARY KEY (link_id, day)
@@ -121,29 +122,38 @@ CREATE INDEX idx_sessions_expires ON sessions(expires_at);
 
 ### 認證機制
 
-- **密碼存儲**: 環境變數 `ADMIN_PASSWORD_HASH` (bcrypt hash)
+- **管理員模型**: 單一管理員（單一共享密碼）
+- **密碼存儲**: 環境變數 `ADMIN_PASSWORD_HASH` (bcryptjs hash, cost factor=10)
+- **Session Token**: UUID v4 + HMAC-SHA256 簽名
 - **Session Cookie**: `__Host-sn_session`
 - **Cookie 屬性**: `HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800`
 - **Session TTL**: 7 天
+- **Session 驗證**: 僅驗證簽名與過期時間，不綁定 IP/UA（允許行動網路切換）
+- **Session 清理**: Cron Trigger 每日 03:00 UTC 執行 `DELETE FROM sessions WHERE expires_at < datetime('now')`
 
 ### 安全措施
 
-#### Rate Limiting (Workers Rate Limiting API)
+#### Rate Limiting
 
-**實現方式**: 在 Functions 代碼層面使用 Workers Rate Limiting Binding
+**主要方案**: Workers Rate Limiting API (Binding)
 
 ```toml
 # wrangler.toml
-[[ratelimits]]
+[[unsafe.bindings]]
 name = "LOGIN_LIMITER"
+type = "ratelimit"
 namespace_id = "1001"
 simple = { limit = 5, period = 60 }   # 登入: 5次/分鐘
 
-[[ratelimits]]
+[[unsafe.bindings]]
 name = "CLICK_LIMITER"
+type = "ratelimit"
 namespace_id = "1002"
 simple = { limit = 60, period = 60 }  # 點擊: 60次/分鐘
 ```
+
+**降級方案** (若 Rate Limiting Binding 不可用):
+使用 D1 記錄請求時間戳，應用層實現滑動窗口限流。
 
 **Key 策略**:
 - 登入限流 Key: `login:${IP}`
@@ -165,9 +175,24 @@ export async function onRequestPost(context) {
 
 #### CSRF 防護
 - SameSite=Lax Cookie
-- Origin Header 驗證
+- Origin Header 驗證（allowlist: 部署域名）
+- 缺失 Origin 時拒絕請求並返回 403
 
 ### Favicon 獲取策略
+
+**約束**:
+- 請求超時: **1.5 秒**
+- 響應大小限制: **64KB**
+- 緩存: KV (TTL 7 天)
+- Domain 驗證: 僅允許有效域名格式
+
+**KV 綁定配置**:
+```toml
+# wrangler.toml
+[[kv_namespaces]]
+binding = "FAVICON_CACHE"
+id = "<KV_NAMESPACE_ID>"
+```
 
 優先順序:
 1. **FaviconKit**: `https://ico.faviconkit.net/favicon/{domain}?sz=64`
@@ -274,49 +299,119 @@ export async function onRequestPost(context) {
 
 ## PBT 測試屬性
 
+### 時區約束
+- **統一時區**: 所有時間戳使用 **UTC**
+- **日期格式**: `YYYY-MM-DD` (ISO 8601)
+- **前端顯示**: 轉換為用戶本地時區
+
 ### 不變量 (Invariants)
 
 1. **點擊計數單調遞增**
    - `links.click_count` 只能增加，永不減少
    - 驗證: 任意時刻 `count_after >= count_before`
+   - 偽造策略: 高併發點擊序列，隨機插入失敗請求，比對任意時刻快照
 
-2. **Session 過期時間一致性**
+2. **點擊計數一致性**
+   - `links.click_count` 必須等於 `click_stats_daily` 該 link 所有 count 之和
+   - 驗證: `∀l ∈ Links, l.click_count ≡ Σ stats(l, d).count`
+   - 偽造策略: 模擬並發點擊並注入 D1 事務失敗
+
+3. **Session 過期時間一致性**
    - `sessions.expires_at` 必須等於 `created_at + 7 days`
    - 驗證: `expires_at - created_at == 604800 seconds`
+   - 偽造策略: 隨機生成 created_at，檢查 TTL 計算與邊界
 
-3. **分類刪除約束**
+4. **分類刪除約束**
    - 存在關聯 links 的 category 不可刪除
-   - 驗證: `DELETE category WHERE EXISTS(links) → Error`
-
-4. **URL 唯一性**
-   - 同一 URL 只能存在一條 link 記錄
-   - 驗證: `INSERT duplicate URL → Constraint Error`
+   - 驗證: `DELETE category WHERE EXISTS(links) → Error` 且狀態不變
+   - 偽造策略: 隨機建立 (Category, [Links]) 狀態，嘗試刪除
 
 5. **Rate Limit 邊界**
    - 登入嘗試: 60秒內最多5次
    - 驗證: 第6次請求返回 429
+   - 偽造策略: 使用可控時鐘，固定 IP 發送 6 次請求
+
+### 冪等性 (Idempotency)
+
+1. **GET 請求冪等**
+   - `GET /api/links` 在 DB 狀態不變時，回傳資料集合相等
+   - 偽造策略: 固定 DB 狀態，多次 GET 比較集合相等性
+
+2. **PUT 請求冪等**
+   - 對同一筆 `links/:id` 使用相同 payload 重複 PUT，第二次不改變狀態
+   - 偽造策略: 隨機生成 link 與 payload，連續 PUT 兩次後比對 row hash
+
+3. **DELETE 請求冪等**
+   - 重複 DELETE 不改變狀態（第二次可回 404 或 204，但 DB 不變）
+   - 偽造策略: 對存在與不存在 ID 重複 DELETE，比對刪除前後 DB 快照
+
+4. **Logout 冪等**
+   - 多次 logout 後 session 狀態仍為「已登出」
+   - 偽造策略: 建立 session 後連續 logout，驗證 cookie 被清除
 
 ### 往返測試 (Round-trip)
 
 1. **Link CRUD**
    - `Create → Read → data matches`
    - `Update → Read → data matches`
+   - 偽造策略: 生成隨機字串/URL 組合，Create 後讀回比對
 
 2. **Category CRUD**
    - `Create → Read → data matches`
    - 刪除後 `Read → 404`
+   - 偽造策略: 生成 slug 邊界案例（大小寫、連字號）
+
+### 邊界約束 (Bounds)
+
+1. **輸入長度限制**
+   - `title`: 1-100 字元
+   - `description`: 0-500 字元
+   - `url`: 1-2048 字元
+   - `slug`: 1-50 字元，格式 `^[a-z0-9-]+$`
+
+2. **排序穩定性**
+   - 相同 `sort_order` 時，以 `id` 作為次要排序鍵
+   - SQL: `ORDER BY sort_order ASC, id ASC`
+
+3. **Slug 保留字**
+   - 禁止使用: `admin`, `api`, `auth`, `login`, `logout`
 
 ## 環境變數
 
 | 變數名 | 用途 | 必填 |
 |--------|------|------|
-| `ADMIN_PASSWORD_HASH` | 管理員密碼 bcrypt hash | ✅ |
-| `SESSION_SECRET` | Session 簽名密鑰 | ✅ |
+| `ADMIN_PASSWORD_HASH` | 管理員密碼 bcryptjs hash (cost=10) | ✅ |
+| `SESSION_SECRET` | Session HMAC-SHA256 簽名密鑰 (≥32 bytes) | ✅ |
+
+## Cloudflare 綁定配置
+
+```toml
+# wrangler.toml
+name = "simplenavi"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "dist"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "simplenavi-db"
+database_id = "<D1_DATABASE_ID>"
+
+# KV Namespace (Favicon Cache)
+[[kv_namespaces]]
+binding = "FAVICON_CACHE"
+id = "<KV_NAMESPACE_ID>"
+
+# Cron Trigger (Session Cleanup)
+[triggers]
+crons = ["0 3 * * *"]
+```
 
 ## 部署檢查清單
 
 - [ ] D1 Database 已建立並綁定
+- [ ] KV Namespace 已建立並綁定 (FAVICON_CACHE)
 - [ ] `ADMIN_PASSWORD_HASH` 已設定 (Secret)
-- [ ] `SESSION_SECRET` 已設定 (Secret)
-- [ ] Rate Limiting 規則已配置
+- [ ] `SESSION_SECRET` 已設定 (Secret, ≥32 bytes)
+- [ ] Cron Trigger 已配置 (Session 清理)
 - [ ] 自定義域名已綁定 (可選)
