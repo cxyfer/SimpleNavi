@@ -25,3 +25,9 @@ dist-ssr
 
 # Cloudflare
 wrangler.toml
+
+# AI Tools
+.ace-tool/
+.claude/
+.codex/
+.gemini/
