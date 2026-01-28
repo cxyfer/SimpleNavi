@@ -1,4 +1,4 @@
-import type { ApiResponse, LinksData, Link, Category, StatsData } from './types'
+import type { ApiResponse, LinksData, Link, Category, StatsData, Tag } from './types'
 
 const BASE_URL = '/api'
 
@@ -27,6 +27,10 @@ export const api = {
         : request<void>('/click', { method: 'POST', body: JSON.stringify({ linkId }) }),
   },
 
+  tags: {
+    list: () => request<Tag[]>('/tags'),
+  },
+
   favicon: {
     get: (domain: string) => request<{ url: string }>(`/favicon?domain=${encodeURIComponent(domain)}`),
   },
@@ -49,6 +53,11 @@ export const api = {
       update: (id: number, data: Partial<Link>) =>
         request<Link>(`/admin/links/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
       delete: (id: number) => request<void>(`/admin/links/${id}`, { method: 'DELETE' }),
+      updateTags: (id: number, tagIds: number[]) =>
+        request<{ link_id: number; tags: Pick<Tag, 'id' | 'name' | 'slug'>[] }>(
+          `/admin/links/${id}/tags`,
+          { method: 'PUT', body: JSON.stringify({ tag_ids: tagIds }) }
+        ),
     },
     categories: {
       list: () => request<Category[]>('/admin/categories'),
@@ -57,6 +66,14 @@ export const api = {
       update: (id: number, data: Partial<Category>) =>
         request<Category>(`/admin/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
       delete: (id: number) => request<void>(`/admin/categories/${id}`, { method: 'DELETE' }),
+    },
+    tags: {
+      list: () => request<Tag[]>('/admin/tags'),
+      create: (data: { name: string; slug?: string }) =>
+        request<Tag>('/admin/tags', { method: 'POST', body: JSON.stringify(data) }),
+      update: (id: number, data: Partial<Tag>) =>
+        request<Tag>(`/admin/tags/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+      delete: (id: number) => request<void>(`/admin/tags/${id}`, { method: 'DELETE' }),
     },
     stats: () => request<StatsData>('/admin/stats'),
   },

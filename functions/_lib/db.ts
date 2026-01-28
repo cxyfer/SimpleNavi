@@ -32,6 +32,23 @@ export interface ClickStatDaily {
   last_clicked_at: string | null
 }
 
+export interface Tag {
+  id: number
+  name: string
+  slug: string
+  created_at: string
+  updated_at: string
+}
+
+export interface LinkTag {
+  link_id: number
+  tag_id: number
+}
+
+export interface LinkWithTags extends Link {
+  tags: Pick<Tag, 'id' | 'name' | 'slug'>[]
+}
+
 export async function getActiveCategories(db: Env['DB']): Promise<Category[]> {
   const { results } = await db
     .prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
@@ -62,4 +79,36 @@ export async function recordClick(db: Env['DB'], linkId: number): Promise<void> 
       )
       .bind(linkId, day, now),
   ])
+}
+
+export async function getActiveTags(db: Env['DB']): Promise<Tag[]> {
+  const { results } = await db
+    .prepare('SELECT * FROM tags ORDER BY name ASC')
+    .all<Tag>()
+  return results
+}
+
+export async function getActiveLinksWithTags(db: Env['DB']): Promise<LinkWithTags[]> {
+  const [linksResult, tagsResult] = await Promise.all([
+    db.prepare('SELECT * FROM links WHERE is_active = 1 ORDER BY sort_order ASC, id ASC').all<Link>(),
+    db.prepare(`
+      SELECT lt.link_id, t.id, t.name, t.slug
+      FROM link_tags lt
+      JOIN tags t ON lt.tag_id = t.id
+      JOIN links l ON lt.link_id = l.id
+      WHERE l.is_active = 1
+    `).all<{ link_id: number; id: number; name: string; slug: string }>(),
+  ])
+
+  const tagsByLinkId = new Map<number, Pick<Tag, 'id' | 'name' | 'slug'>[]>()
+  for (const row of tagsResult.results) {
+    const tags = tagsByLinkId.get(row.link_id) || []
+    tags.push({ id: row.id, name: row.name, slug: row.slug })
+    tagsByLinkId.set(row.link_id, tags)
+  }
+
+  return linksResult.results.map((link) => ({
+    ...link,
+    tags: tagsByLinkId.get(link.id) || [],
+  }))
 }

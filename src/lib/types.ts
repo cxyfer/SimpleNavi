@@ -8,6 +8,14 @@ export interface Category {
   updated_at: string
 }
 
+export interface Tag {
+  id: number
+  name: string
+  slug: string
+  created_at: string
+  updated_at: string
+}
+
 export interface Link {
   id: number
   category_id: number
@@ -21,6 +29,7 @@ export interface Link {
   click_count: number
   created_at: string
   updated_at: string
+  tags: Pick<Tag, 'id' | 'name' | 'slug'>[]
 }
 
 export interface ApiResponse<T = unknown> {

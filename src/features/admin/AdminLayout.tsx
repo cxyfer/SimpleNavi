@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { LayoutGrid, Link2, BarChart3, LogOut } from 'lucide-react'
+import { LayoutGrid, Link2, BarChart3, LogOut, Tag } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/layout/Container'
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 const navItems = [
   { path: '/admin/links', label: '連結', icon: Link2 },
   { path: '/admin/categories', label: '分類', icon: LayoutGrid },
+  { path: '/admin/tags', label: '標籤', icon: Tag },
   { path: '/admin/stats', label: '統計', icon: BarChart3 },
 ]
 

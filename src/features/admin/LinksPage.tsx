@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, X } from 'lucide-react'
 import { api } from '@/lib/api'
-import type { Link, Category } from '@/lib/types'
+import type { Link, Category, Tag } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +12,8 @@ import { useToast } from '@/components/ui/use-toast'
 export default function LinksPage() {
   const [editing, setEditing] = useState<Link | null>(null)
   const [isNew, setIsNew] = useState(false)
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const [newTagName, setNewTagName] = useState('')
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -23,6 +25,11 @@ export default function LinksPage() {
   const { data: categories } = useQuery({
     queryKey: ['admin', 'categories'],
     queryFn: api.admin.categories.list,
+  })
+
+  const { data: tags } = useQuery({
+    queryKey: ['admin', 'tags'],
+    queryFn: api.admin.tags.list,
   })
 
   const createMutation = useMutation({
@@ -55,7 +62,32 @@ export default function LinksPage() {
     onError: (err: Error) => toast({ title: '刪除失敗', description: err.message, variant: 'destructive' }),
   })
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const updateTagsMutation = useMutation({
+    mutationFn: ({ id, tagIds }: { id: number; tagIds: number[] }) => api.admin.links.updateTags(id, tagIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
+    },
+    onError: (err: Error) => toast({ title: '標籤更新失敗', description: err.message, variant: 'destructive' }),
+  })
+
+  const createTagMutation = useMutation({
+    mutationFn: api.admin.tags.create,
+    onSuccess: (newTag) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tags'] })
+      setSelectedTagIds([...selectedTagIds, newTag.id])
+      setNewTagName('')
+    },
+    onError: (err: Error) => toast({ title: '標籤建立失敗', description: err.message, variant: 'destructive' }),
+  })
+
+  const startEditing = (link: Link, isNewLink: boolean) => {
+    setEditing(link)
+    setIsNew(isNewLink)
+    setSelectedTagIds(link.tags?.map((t) => t.id) || [])
+    setNewTagName('')
+  }
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
     const data = {
@@ -67,10 +99,26 @@ export default function LinksPage() {
     }
 
     if (isNew) {
-      createMutation.mutate(data)
+      const newLink = await createMutation.mutateAsync(data)
+      if (selectedTagIds.length > 0) {
+        await updateTagsMutation.mutateAsync({ id: newLink.id, tagIds: selectedTagIds })
+      }
     } else if (editing) {
-      updateMutation.mutate({ id: editing.id, data })
+      await updateMutation.mutateAsync({ id: editing.id, data })
+      await updateTagsMutation.mutateAsync({ id: editing.id, tagIds: selectedTagIds })
     }
+  }
+
+  const handleAddNewTag = () => {
+    if (newTagName.trim()) {
+      createTagMutation.mutate({ name: newTagName.trim() })
+    }
+  }
+
+  const toggleTag = (tagId: number) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    )
   }
 
   const getCategoryName = (id: number) => categories?.find((c: Category) => c.id === id)?.name || ''
@@ -81,7 +129,7 @@ export default function LinksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">連結管理</h1>
-        <Button onClick={() => { setIsNew(true); setEditing({} as Link) }}>
+        <Button onClick={() => startEditing({} as Link, true)}>
           <Plus className="h-4 w-4 mr-1" /> 新增連結
         </Button>
       </div>
@@ -125,12 +173,44 @@ export default function LinksPage() {
                   <Label htmlFor="sort_order">排序</Label>
                   <Input id="sort_order" name="sort_order" type="number" defaultValue={editing.sort_order || 0} />
                 </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>標籤</Label>
+                  <div className="flex flex-wrap gap-2 p-3 rounded-md border border-input bg-transparent min-h-[42px]">
+                    {tags?.map((tag: Tag) => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleTag(tag.id)}
+                        className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                          selectedTagIds.includes(tag.id)
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        #{tag.name}
+                        {selectedTagIds.includes(tag.id) && <X className="h-3 w-3" />}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      placeholder="新增標籤..."
+                      value={newTagName}
+                      onChange={(e) => setNewTagName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddNewTag())}
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={handleAddNewTag} disabled={!newTagName.trim()}>
+                      新增
+                    </Button>
+                  </div>
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
                   {isNew ? '新增' : '更新'}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => { setEditing(null); setIsNew(false) }}>
+                <Button type="button" variant="outline" onClick={() => { setEditing(null); setIsNew(false); setSelectedTagIds([]); setNewTagName('') }}>
                   取消
                 </Button>
               </div>
@@ -159,7 +239,7 @@ export default function LinksPage() {
                 <td className="px-4 py-3 text-sm">{getCategoryName(link.category_id)}</td>
                 <td className="px-4 py-3 text-sm">{link.click_count}</td>
                 <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="icon" onClick={() => { setEditing(link); setIsNew(false) }}>
+                  <Button variant="ghost" size="icon" onClick={() => startEditing(link, false)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(link.id)}>

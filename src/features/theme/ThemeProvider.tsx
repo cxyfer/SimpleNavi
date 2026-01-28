@@ -14,7 +14,7 @@ const STORAGE_KEY = 'simplenavi-theme'
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
-    return (stored as Theme) || 'system'
+    return (stored as Theme) || 'dark'
   })
 
   useEffect(() => {

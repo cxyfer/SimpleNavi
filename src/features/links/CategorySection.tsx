@@ -11,12 +11,23 @@ export function CategorySection({ category, links }: CategorySectionProps) {
 
   return (
     <section className="scroll-mt-24">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="h-7 w-1 rounded-full bg-primary" />
-        <h2 className="text-xl font-bold tracking-tight">{category.name}</h2>
-        <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
+      <div className="mb-8 flex items-center gap-4">
+        {/* Neon accent bar */}
+        <div className="relative h-8 w-1.5 rounded-full bg-gradient-to-b from-primary via-accent to-primary">
+          <div className="absolute inset-0 rounded-full bg-primary blur-sm" />
+        </div>
+        <h2 className="text-2xl font-bold tracking-tight">{category.name}</h2>
+        {/* Decorative line with gradient */}
+        <div className="relative h-px flex-1">
+          <div className="absolute inset-0 bg-gradient-to-r from-border via-primary/30 to-transparent" />
+          <div className="absolute left-0 top-0 h-px w-24 bg-gradient-to-r from-primary/60 to-transparent" />
+        </div>
+        {/* Link count badge */}
+        <span className="rounded-md border border-border/60 bg-muted/50 px-2.5 py-1 font-mono text-xs text-muted-foreground">
+          {links.length}
+        </span>
       </div>
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {links.map((link) => (
           <LinkCard key={link.id} link={link} />
         ))}

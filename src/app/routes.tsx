@@ -2,10 +2,12 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 
 const HomePage = lazy(() => import('@/features/links/HomePage'))
+const CategoryPage = lazy(() => import('@/features/links/CategoryPage'))
 const LoginPage = lazy(() => import('@/features/admin/LoginPage'))
 const AdminLayout = lazy(() => import('@/features/admin/AdminLayout'))
 const LinksPage = lazy(() => import('@/features/admin/LinksPage'))
 const CategoriesPage = lazy(() => import('@/features/admin/CategoriesPage'))
+const TagsPage = lazy(() => import('@/features/admin/TagsPage'))
 const StatsPage = lazy(() => import('@/features/admin/StatsPage'))
 
 function Loading() {
@@ -33,8 +35,10 @@ export const router = createBrowserRouter([
     children: [
       { path: 'links', element: withSuspense(LinksPage) },
       { path: 'categories', element: withSuspense(CategoriesPage) },
+      { path: 'tags', element: withSuspense(TagsPage) },
       { path: 'stats', element: withSuspense(StatsPage) },
     ],
   },
+  { path: '/:slug', element: withSuspense(CategoryPage) },
   { path: '*', element: <Navigate to="/" replace /> },
 ])
