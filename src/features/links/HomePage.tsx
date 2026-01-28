@@ -24,17 +24,20 @@ export default function HomePage() {
   }, [data?.links, searchQuery])
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-background via-muted/20 to-background">
       <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-      <main className="py-8">
+      <main className="py-10 md:py-12">
         <Container>
           {isLoading && (
-            <div className="space-y-8">
+            <div className="space-y-12">
               {[1, 2, 3].map((i) => (
                 <section key={i}>
-                  <div className="mb-4 h-6 w-20 animate-pulse rounded bg-muted" />
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {[1, 2, 3].map((j) => (
+                  <div className="mb-6 flex items-center gap-3">
+                    <div className="h-7 w-1 rounded-full bg-muted" />
+                    <div className="h-6 w-24 animate-pulse rounded-lg bg-muted" />
+                  </div>
+                  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {[1, 2, 3, 4].map((j) => (
                       <LinkSkeleton key={j} />
                     ))}
                   </div>
@@ -44,15 +47,15 @@ export default function HomePage() {
           )}
 
           {error && (
-            <div className="text-center text-destructive">
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/5 py-12 text-center text-destructive">
               載入失敗，請重新整理頁面
             </div>
           )}
 
           {data && filteredLinks && (
-            <div className="space-y-8">
+            <div className="space-y-12">
               {filteredLinks.length === 0 ? (
-                <div className="text-center text-muted-foreground py-12">
+                <div className="rounded-2xl border border-dashed border-border/60 bg-muted/30 py-16 text-center text-muted-foreground">
                   找不到符合「{searchQuery}」的連結
                 </div>
               ) : (

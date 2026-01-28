@@ -24,25 +24,27 @@ export function LinkCard({ link }: LinkCardProps) {
       target="_blank"
       rel="noopener noreferrer"
       onClick={handleClick}
-      className="group flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-primary/20"
+      className="group relative flex items-start gap-4 rounded-2xl border border-border/50 bg-card/80 p-5 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:bg-card hover:shadow-lg dark:hover:shadow-primary/5"
     >
-      <Avatar className="h-10 w-10">
+      <div className="absolute inset-0 -z-10 rounded-2xl bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <Avatar className="h-12 w-12 shrink-0 rounded-xl ring-1 ring-border/50 transition-transform duration-300 group-hover:scale-105">
         {!imgError && (
           <AvatarImage
             src={link.icon_url || `/api/favicon?domain=${domain}`}
             alt={link.title}
             onError={() => setImgError(true)}
+            className="rounded-xl"
           />
         )}
-        <AvatarFallback className="bg-primary/10 text-primary">{initial}</AvatarFallback>
+        <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-semibold">{initial}</AvatarFallback>
       </Avatar>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1">
-          <span className="font-medium truncate">{link.title}</span>
-          <ExternalLink className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-50" />
+      <div className="flex-1 min-w-0 pt-0.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary truncate">{link.title}</span>
+          <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 -translate-x-1 transition-all duration-300 group-hover:opacity-70 group-hover:translate-x-0" />
         </div>
         {link.description && (
-          <p className="text-sm text-muted-foreground truncate">{link.description}</p>
+          <p className="mt-1.5 text-sm text-muted-foreground/90 line-clamp-2 leading-relaxed">{link.description}</p>
         )}
       </div>
     </a>

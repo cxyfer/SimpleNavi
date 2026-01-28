@@ -10,9 +10,13 @@ export function CategorySection({ category, links }: CategorySectionProps) {
   if (links.length === 0) return null
 
   return (
-    <section>
-      <h2 className="mb-4 text-lg font-semibold border-l-4 border-primary pl-3">{category.name}</h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <section className="scroll-mt-24">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="h-7 w-1 rounded-full bg-primary" />
+        <h2 className="text-xl font-bold tracking-tight">{category.name}</h2>
+        <div className="h-px flex-1 bg-gradient-to-r from-border to-transparent" />
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {links.map((link) => (
           <LinkCard key={link.id} link={link} />
         ))}
