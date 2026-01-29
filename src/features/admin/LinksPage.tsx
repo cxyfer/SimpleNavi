@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Reorder } from 'framer-motion'
-import { Plus, Pencil, Trash2, X, GripVertical } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, GripVertical, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { Link, Category, Tag } from '@/lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
 
 export default function LinksPage() {
@@ -47,9 +47,6 @@ export default function LinksPage() {
     mutationFn: api.admin.links.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
-      setEditing(null)
-      setIsNew(false)
-      setOrderedByCategory({})
       toast({ title: '連結已新增' })
     },
     onError: (err: Error) => toast({ title: '新增失敗', description: err.message, variant: 'destructive' }),
@@ -59,8 +56,6 @@ export default function LinksPage() {
     mutationFn: ({ id, data }: { id: number; data: Partial<Link> }) => api.admin.links.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
-      setEditing(null)
-      setOrderedByCategory({})
       toast({ title: '連結已更新' })
     },
     onError: (err: Error) => toast({ title: '更新失敗', description: err.message, variant: 'destructive' }),
@@ -104,6 +99,8 @@ export default function LinksPage() {
     onError: (err: Error) => toast({ title: '排序失敗', description: err.message, variant: 'destructive' }),
   })
 
+  const isPending = createMutation.isPending || updateMutation.isPending || updateTagsMutation.isPending
+
   const startEditing = (link: Link, isNewLink: boolean) => {
     setEditing(link)
     setIsNew(isNewLink)
@@ -124,13 +121,17 @@ export default function LinksPage() {
 
     if (isNew) {
       const newLink = await createMutation.mutateAsync(data)
-      if (selectedTagIds.length > 0) {
-        await updateTagsMutation.mutateAsync({ id: newLink.id, tagIds: selectedTagIds })
-      }
+      await updateTagsMutation.mutateAsync({ id: newLink.id, tagIds: selectedTagIds })
     } else if (editing) {
       await updateMutation.mutateAsync({ id: editing.id, data })
       await updateTagsMutation.mutateAsync({ id: editing.id, tagIds: selectedTagIds })
     }
+
+    setEditing(null)
+    setIsNew(false)
+    setSelectedTagIds([])
+    setNewTagName('')
+    setOrderedByCategory({})
   }
 
   const handleAddNewTag = () => {
@@ -174,90 +175,107 @@ export default function LinksPage() {
         </Button>
       </div>
 
-      {editing && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{isNew ? '新增連結' : '編輯連結'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="category_id">分類</Label>
-                  <select
-                    id="category_id"
-                    name="category_id"
-                    defaultValue={editing.category_id}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground"
-                    required
-                  >
-                    <option value="" className="bg-background text-foreground">選擇分類</option>
-                    {categories?.map((c: Category) => (
-                      <option key={c.id} value={c.id} className="bg-background text-foreground">{c.name}</option>
-                    ))}
-                  </select>
+      <Dialog 
+        open={!!editing} 
+        onOpenChange={(open) => { if (!open && !isPending) { setEditing(null); setIsNew(false); setSelectedTagIds([]); setNewTagName('') } }}
+      >
+        <DialogContent 
+          className="max-w-2xl max-h-[90dvh] overflow-y-auto"
+          onInteractOutside={(e) => isPending && e.preventDefault()}
+          onEscapeKeyDown={(e) => isPending && e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>{isNew ? '新增連結' : '編輯連結'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="category_id">分類</Label>
+                <select
+                  id="category_id"
+                  name="category_id"
+                  defaultValue={editing?.category_id}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground"
+                  required
+                >
+                  <option value="" className="bg-background text-foreground">選擇分類</option>
+                  {categories?.map((c: Category) => (
+                    <option key={c.id} value={c.id} className="bg-background text-foreground">{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="title">標題</Label>
+                <Input id="title" name="title" defaultValue={editing?.title} required maxLength={100} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="url">網址</Label>
+                <Input id="url" name="url" type="url" defaultValue={editing?.url} required maxLength={2048} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="description">描述</Label>
+                <Input id="description" name="description" defaultValue={editing?.description || ''} maxLength={500} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sort_order">排序</Label>
+                <Input id="sort_order" name="sort_order" type="number" defaultValue={editing?.sort_order || 0} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>標籤</Label>
+                <div className="flex flex-wrap gap-2 p-3 rounded-md border border-input bg-transparent min-h-[42px]">
+                  {tags?.map((tag: Tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTag(tag.id)}
+                      className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                        selectedTagIds.includes(tag.id)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      #{tag.name}
+                      {selectedTagIds.includes(tag.id) && <X className="h-3 w-3" />}
+                    </button>
+                  ))}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="title">標題</Label>
-                  <Input id="title" name="title" defaultValue={editing.title} required maxLength={100} />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="url">網址</Label>
-                  <Input id="url" name="url" type="url" defaultValue={editing.url} required maxLength={2048} />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="description">描述</Label>
-                  <Input id="description" name="description" defaultValue={editing.description || ''} maxLength={500} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sort_order">排序</Label>
-                  <Input id="sort_order" name="sort_order" type="number" defaultValue={editing.sort_order || 0} />
-                </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label>標籤</Label>
-                  <div className="flex flex-wrap gap-2 p-3 rounded-md border border-input bg-transparent min-h-[42px]">
-                    {tags?.map((tag: Tag) => (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleTag(tag.id)}
-                        className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-                          selectedTagIds.includes(tag.id)
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                        }`}
-                      >
-                        #{tag.name}
-                        {selectedTagIds.includes(tag.id) && <X className="h-3 w-3" />}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <Input
-                      placeholder="新增標籤..."
-                      value={newTagName}
-                      onChange={(e) => setNewTagName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddNewTag())}
-                      className="flex-1"
-                    />
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddNewTag} disabled={!newTagName.trim()}>
-                      新增
-                    </Button>
-                  </div>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    placeholder="新增標籤..."
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddNewTag())}
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={handleAddNewTag} disabled={!newTagName.trim()}>
+                    新增
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {isNew ? '新增' : '更新'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => { setEditing(null); setIsNew(false); setSelectedTagIds([]); setNewTagName('') }}>
-                  取消
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={isPending}>
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    儲存中...
+                  </>
+                ) : (
+                  isNew ? '新增' : '更新'
+                )}
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                disabled={isPending}
+                onClick={() => { setEditing(null); setIsNew(false); setSelectedTagIds([]); setNewTagName('') }}
+              >
+                取消
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {categories?.map((category: Category) => {
         const categoryLinks = orderedByCategory[category.id] || linksByCategory[category.id] || []

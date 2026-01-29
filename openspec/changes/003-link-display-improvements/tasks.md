@@ -60,6 +60,7 @@
   } from '@/components/ui/dialog'
   import { Loader2 } from 'lucide-react'
   ```
+- [x] 已完成 (包含移除未使用的 Card imports)
 
 ### T5: 新增 isPending 計算
 - **檔案**: `src/features/admin/LinksPage.tsx`
@@ -68,6 +69,7 @@
   ```typescript
   const isPending = createMutation.isPending || updateMutation.isPending || updateTagsMutation.isPending
   ```
+- [x] 已完成
 
 ### T6: 替換表單為 Dialog
 - **檔案**: `src/features/admin/LinksPage.tsx`
@@ -82,7 +84,9 @@
      - `onInteractOutside={(e) => isPending && e.preventDefault()}`
      - `onEscapeKeyDown={(e) => isPending && e.preventDefault()}`
   6. 表單內容移入 DialogContent
+  7. 修復: 移除 mutations onSuccess 中的 setEditing(null)，改在 handleSubmit 結尾執行
 - **驗證**: VC1 (Modal 編輯功能), VC5 (提交中禁止關閉)
+- [x] 已完成
 
 ### T7: 提交按鈕 Loading 狀態
 - **檔案**: `src/features/admin/LinksPage.tsx`
@@ -100,6 +104,7 @@
     )}
   </Button>
   ```
+- [x] 已完成
 
 ### T8: 移除取消按鈕 (可選)
 - **檔案**: `src/features/admin/LinksPage.tsx`
@@ -110,6 +115,7 @@
     取消
   </Button>
   ```
+- [x] 已完成
 
 ---
 
