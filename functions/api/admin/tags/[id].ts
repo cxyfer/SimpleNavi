@@ -1,5 +1,5 @@
 import type { Env } from '../../../_lib/types'
-import { json, error } from '../../../_lib/response'
+import { json, error, noContent } from '../../../_lib/response'
 import type { Tag } from '../../../_lib/db'
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
@@ -72,5 +72,5 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
 
   await context.env.DB.prepare('DELETE FROM tags WHERE id = ?').bind(id).run()
 
-  return json(null, 204)
+  return noContent()
 }
