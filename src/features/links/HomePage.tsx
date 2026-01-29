@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useViewMode } from '@/hooks/useViewMode'
 import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { CategorySection } from './CategorySection'
@@ -12,6 +13,7 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchParams, setSearchParams] = useSearchParams()
   const tagFilter = searchParams.get('tag')
+  const [viewMode, handleViewModeChange] = useViewMode()
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['links'],
@@ -53,7 +55,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent opacity-0 dark:opacity-100" />
       </div>
 
-      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} viewMode={viewMode} onViewModeChange={handleViewModeChange} />
 
       <div className="flex">
         {data && <Sidebar categories={data.categories} className="sticky top-16 h-[calc(100vh-4rem)]" />}
@@ -118,6 +120,7 @@ export default function HomePage() {
                       key={category.id}
                       category={category}
                       links={filteredLinks.filter((l) => l.category_id === category.id)}
+                      viewMode={viewMode}
                     />
                   ))
                 )}

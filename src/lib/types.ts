@@ -54,3 +54,5 @@ export interface StatsData {
 export interface SiteSettings {
   siteName: string
 }
+
+export type ViewMode = 'grid' | 'list'

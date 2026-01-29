@@ -3,15 +3,18 @@ import { useParams, useSearchParams, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useViewMode } from '@/hooks/useViewMode'
 import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { LinkCard } from './LinkCard'
 import { LinkSkeleton } from './LinkSkeleton'
 
 export default function CategoryPage() {
-  const { slug } = useParams<{ slug: string }>()
+  const params = useParams()
+  const slug = params.slug as string | undefined
   const [searchParams, setSearchParams] = useSearchParams()
   const tagFilter = searchParams.get('tag')
+  const [viewMode, handleViewModeChange] = useViewMode()
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['links'],
@@ -49,7 +52,7 @@ export default function CategoryPage() {
         <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[100px]" />
       </div>
 
-      <Header />
+      <Header viewMode={viewMode} onViewModeChange={handleViewModeChange} />
 
       <div className="flex">
         {data && <Sidebar categories={data.categories} className="sticky top-16 h-[calc(100vh-4rem)]" />}
@@ -104,9 +107,9 @@ export default function CategoryPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className={viewMode === 'grid' ? "grid gap-6 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-3"}>
                     {filteredLinks.map((link) => (
-                      <LinkCard key={link.id} link={link} />
+                      <LinkCard key={link.id} link={link} viewMode={viewMode} />
                     ))}
                   </div>
                 )}

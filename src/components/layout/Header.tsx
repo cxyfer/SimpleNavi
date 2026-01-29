@@ -1,17 +1,21 @@
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Zap } from 'lucide-react'
+import { Search, Zap, LayoutGrid, List } from 'lucide-react'
 import { api } from '@/lib/api'
+import type { ViewMode } from '@/lib/types'
 import { ThemeToggle } from '@/features/theme/ThemeToggle'
 import { Input } from '@/components/ui/input'
 import { Container } from './Container'
+import { cn } from '@/lib/utils'
 
 interface HeaderProps {
   searchQuery?: string
   onSearchChange?: (query: string) => void
+  viewMode: ViewMode
+  onViewModeChange: (mode: ViewMode) => void
 }
 
-export function Header({ searchQuery, onSearchChange }: HeaderProps) {
+export function Header({ searchQuery, onSearchChange, viewMode, onViewModeChange }: HeaderProps) {
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: api.settings.get,
@@ -50,6 +54,30 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
         )}
 
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 border-r border-border/40 pr-2 mr-2">
+            <button
+              onClick={() => onViewModeChange('grid')}
+              aria-label="Grid view"
+              aria-pressed={viewMode === 'grid'}
+              className={cn(
+                "p-2 rounded-md transition-all hover:bg-accent",
+                viewMode === 'grid' ? "text-primary bg-accent/50" : "text-muted-foreground"
+              )}
+            >
+              <LayoutGrid size={18} />
+            </button>
+            <button
+              onClick={() => onViewModeChange('list')}
+              aria-label="List view"
+              aria-pressed={viewMode === 'list'}
+              className={cn(
+                "p-2 rounded-md transition-all hover:bg-accent",
+                viewMode === 'list' ? "text-primary bg-accent/50" : "text-muted-foreground"
+              )}
+            >
+              <List size={18} />
+            </button>
+          </div>
           <ThemeToggle />
         </div>
       </Container>

@@ -1,13 +1,17 @@
-import type { Category, Link } from '@/lib/types'
+import type { Category, Link, ViewMode } from '@/lib/types'
 import { LinkCard } from './LinkCard'
+import { cn } from '@/lib/utils'
 
 interface CategorySectionProps {
   category: Category
   links: Link[]
+  viewMode: ViewMode
 }
 
-export function CategorySection({ category, links }: CategorySectionProps) {
+export function CategorySection({ category, links, viewMode }: CategorySectionProps) {
   if (links.length === 0) return null
+
+  const isGrid = viewMode === 'grid'
 
   return (
     <section className="scroll-mt-24">
@@ -27,9 +31,11 @@ export function CategorySection({ category, links }: CategorySectionProps) {
           {links.length}
         </span>
       </div>
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+      <div className={cn(
+        isGrid ? "grid gap-6 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-3"
+      )}>
         {links.map((link) => (
-          <LinkCard key={link.id} link={link} />
+          <LinkCard key={link.id} link={link} viewMode={viewMode} />
         ))}
       </div>
     </section>

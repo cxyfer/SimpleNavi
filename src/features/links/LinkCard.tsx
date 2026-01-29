@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { ExternalLink } from 'lucide-react'
-import type { Link } from '@/lib/types'
+import type { Link, ViewMode } from '@/lib/types'
 import { api } from '@/lib/api'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { TagBadge } from './TagBadge'
+import { cn } from '@/lib/utils'
 
 interface LinkCardProps {
   link: Link
+  viewMode: ViewMode
 }
 
-export function LinkCard({ link }: LinkCardProps) {
+export function LinkCard({ link, viewMode }: LinkCardProps) {
   const [imgError, setImgError] = useState(false)
+  const isCompact = viewMode === 'list'
 
   const domain = new URL(link.url).hostname
   const initial = link.title.charAt(0).toUpperCase()
@@ -25,17 +28,29 @@ export function LinkCard({ link }: LinkCardProps) {
       target="_blank"
       rel="noopener noreferrer"
       onClick={handleClick}
-      className="group relative flex items-start gap-5 rounded-xl border border-border/60 bg-card/60 p-6 backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-primary/50 hover:bg-card/90 hover:shadow-[0_0_30px_-5px] hover:shadow-primary/30 dark:hover:shadow-primary/20"
+      className={cn(
+        "group relative flex transition-all duration-300 border border-border/60 backdrop-blur-md",
+        !isCompact && "items-start gap-5 rounded-xl bg-card/60 p-6 hover:-translate-y-1.5 hover:border-primary/50 hover:bg-card/90 hover:shadow-[0_0_30px_-5px] hover:shadow-primary/30 dark:hover:shadow-primary/20",
+        isCompact && "items-center gap-4 rounded-lg bg-card/40 p-3 hover:bg-card/80 hover:border-primary/30"
+      )}
     >
-      {/* Animated gradient border on hover */}
-      <div className="pointer-events-none absolute inset-0 -z-10 rounded-xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 opacity-0 blur-sm transition-opacity duration-500 group-hover:opacity-100" />
+      {/* Animated gradient border on hover - Grid mode only */}
+      {!isCompact && (
+        <div className="pointer-events-none absolute inset-0 -z-10 rounded-xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 opacity-0 blur-sm transition-opacity duration-500 group-hover:opacity-100" />
+      )}
 
-      {/* Corner accent */}
-      <div className="absolute right-0 top-0 h-12 w-12 overflow-hidden rounded-tr-xl">
-        <div className="absolute -right-6 -top-6 h-12 w-12 rotate-45 bg-gradient-to-br from-primary/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      </div>
+      {/* Corner accent - Grid mode only */}
+      {!isCompact && (
+        <div className="absolute right-0 top-0 h-12 w-12 overflow-hidden rounded-tr-xl">
+          <div className="absolute -right-6 -top-6 h-12 w-12 rotate-45 bg-gradient-to-br from-primary/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        </div>
+      )}
 
-      <Avatar className="h-14 w-14 shrink-0 rounded-lg ring-2 ring-border/40 transition-all duration-300 group-hover:ring-primary/50 group-hover:shadow-[0_0_15px_-3px] group-hover:shadow-primary/40">
+      <Avatar className={cn(
+        "transition-all rounded-lg ring-2 ring-border/40",
+        !isCompact && "h-14 w-14 shrink-0 group-hover:ring-primary/50 group-hover:shadow-[0_0_15px_-3px] group-hover:shadow-primary/40",
+        isCompact && "h-10 w-10 shrink-0 text-sm"
+      )}>
         {!imgError && (
           <AvatarImage
             src={link.icon_url || `/api/favicon?domain=${domain}`}
@@ -44,37 +59,60 @@ export function LinkCard({ link }: LinkCardProps) {
             className="rounded-lg"
           />
         )}
-        <AvatarFallback className="rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 font-mono text-lg font-bold text-primary">
+        <AvatarFallback className={cn(
+          "rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 font-bold text-primary",
+          !isCompact && "font-mono text-lg",
+          isCompact && "text-sm font-mono"
+        )}>
           {initial}
         </AvatarFallback>
       </Avatar>
 
-      <div className="flex-1 min-w-0 pt-1">
-        <div className="flex items-center justify-between gap-3">
-          <span className="font-semibold tracking-tight text-foreground transition-colors duration-300 group-hover:text-primary truncate">
-            {link.title}
-          </span>
-          <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 -translate-x-2 transition-all duration-300 group-hover:opacity-80 group-hover:translate-x-0 group-hover:text-primary" />
-        </div>
-        {link.description && (
-          <p className="mt-2 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-            {link.description}
-          </p>
-        )}
-        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground/60 font-mono">
-          <span className="truncate">{domain}</span>
-        </div>
-        {link.tags && link.tags.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {link.tags.map((tag) => (
-              <TagBadge key={tag.id} name={tag.name} slug={tag.slug} />
-            ))}
+      <div className={cn("flex-1 min-w-0", isCompact ? "flex items-center justify-between gap-4" : "pt-1")}>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "font-semibold tracking-tight text-foreground transition-colors duration-300 group-hover:text-primary truncate",
+              isCompact && "text-sm"
+            )}>
+              {link.title}
+            </span>
+            <ExternalLink className={cn(
+              "shrink-0 text-muted-foreground transition-all duration-300 group-hover:text-primary",
+              !isCompact && "h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-80 group-hover:translate-x-0",
+              isCompact && "h-3.5 w-3.5 opacity-60"
+            )} />
           </div>
-        )}
+          {link.description && (
+            <p className={cn(
+              "text-muted-foreground",
+              !isCompact && "mt-2 text-sm line-clamp-2 leading-relaxed",
+              isCompact && "text-xs line-clamp-1"
+            )}>
+              {link.description}
+            </p>
+          )}
+        </div>
+
+        <div className={cn(
+          "text-muted-foreground/60 font-mono text-xs flex items-center",
+          !isCompact ? "mt-3 gap-2" : "shrink-0 gap-3"
+        )}>
+          <span className="truncate">{domain}</span>
+          {link.tags && link.tags.length > 0 && !isCompact && (
+            <div className="flex flex-wrap gap-1.5">
+              {link.tags.map((tag) => (
+                <TagBadge key={tag.id} name={tag.name} slug={tag.slug} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Bottom glow line */}
-      <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      {/* Bottom glow line - Grid mode only */}
+      {!isCompact && (
+        <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      )}
     </a>
   )
 }
