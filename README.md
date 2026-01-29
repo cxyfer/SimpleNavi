@@ -86,11 +86,11 @@ npx wrangler d1 execute simplenavi-db --remote --file=migrations/0005_add_tags_s
 
 ```bash
 # 建立專案
-npx wrangler pages project create simplenavi --production-branch main
+npx wrangler pages project create simplenavi --production-branch master
 
 # 建構並部署
 npm run build
-npx wrangler pages deploy dist --project-name simplenavi --branch main
+npx wrangler pages deploy dist --project-name simplenavi --branch master
 ```
 
 ### 5. 設置環境變數
@@ -148,7 +148,7 @@ curl -X PATCH "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT
 ### 7. 重新部署
 
 ```bash
-npx wrangler pages deploy dist --project-name simplenavi --branch main
+npx wrangler pages deploy dist --project-name simplenavi --branch master
 ```
 
 ## 使用方式
