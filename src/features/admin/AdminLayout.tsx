@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { LayoutGrid, Link2, BarChart3, LogOut, Tag } from 'lucide-react'
+import { LayoutGrid, Link2, BarChart3, LogOut, Tag, Settings } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Container } from '@/components/layout/Container'
@@ -12,6 +12,7 @@ const navItems = [
   { path: '/admin/links', label: '連結', icon: Link2 },
   { path: '/admin/categories', label: '分類', icon: LayoutGrid },
   { path: '/admin/tags', label: '標籤', icon: Tag },
+  { path: '/admin/settings', label: '設定', icon: Settings },
   { path: '/admin/stats', label: '統計', icon: BarChart3 },
 ]
 
@@ -32,6 +33,11 @@ export default function AdminLayout() {
       queryClient.clear()
       navigate('/admin')
     },
+  })
+
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: api.settings.get,
   })
 
   useEffect(() => {
@@ -56,7 +62,7 @@ export default function AdminLayout() {
         <Container className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-6">
             <Link to="/" className="text-xl font-bold">
-              SimpleNavi
+              {settings?.siteName || 'SimpleNavi'}
             </Link>
             <nav className="flex items-center gap-1">
               {navItems.map(({ path, label, icon: Icon }) => (

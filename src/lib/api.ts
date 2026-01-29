@@ -1,4 +1,4 @@
-import type { ApiResponse, LinksData, Link, Category, StatsData, Tag } from './types'
+import type { ApiResponse, LinksData, Link, Category, StatsData, Tag, SiteSettings } from './types'
 
 const BASE_URL = '/api'
 
@@ -29,6 +29,10 @@ export const api = {
 
   tags: {
     list: () => request<Tag[]>('/tags'),
+  },
+
+  settings: {
+    get: () => request<SiteSettings>('/settings'),
   },
 
   favicon: {
@@ -82,5 +86,10 @@ export const api = {
         request<{ success: boolean }>('/admin/tags/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
     },
     stats: () => request<StatsData>('/admin/stats'),
+    settings: {
+      get: () => request<SiteSettings>('/admin/settings'),
+      update: (data: SiteSettings) =>
+        request<SiteSettings>('/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
+    },
   },
 }

@@ -50,6 +50,12 @@ export interface LinkWithTags extends Link {
   tags: Pick<Tag, 'id' | 'name' | 'slug'>[]
 }
 
+export interface SiteSetting {
+  id: number
+  site_name: string
+  updated_at: string
+}
+
 export async function getActiveCategories(db: Env['DB']): Promise<Category[]> {
   const { results } = await db
     .prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
@@ -112,4 +118,30 @@ export async function getActiveLinksWithTags(db: Env['DB']): Promise<LinkWithTag
     ...link,
     tags: tagsByLinkId.get(link.id) || [],
   }))
+}
+
+export async function getSiteSettings(db: Env['DB']): Promise<SiteSetting | null> {
+  const settings = await db.prepare('SELECT * FROM site_settings WHERE id = 1').first<SiteSetting>()
+  return settings ?? null
+}
+
+export async function updateSiteSettings(
+  db: Env['DB'],
+  siteName: string
+): Promise<SiteSetting> {
+  const now = new Date().toISOString()
+  await db.prepare(
+    `INSERT INTO site_settings (id, site_name, updated_at)
+     VALUES (1, ?, ?)
+     ON CONFLICT (id) DO UPDATE SET
+       site_name = excluded.site_name,
+       updated_at = excluded.updated_at`
+  )
+    .bind(siteName, now)
+    .run()
+
+  const settings = await db.prepare('SELECT * FROM site_settings WHERE id = 1')
+    .first<SiteSetting>()
+
+  return settings ?? { id: 1, site_name: siteName, updated_at: now }
 }

@@ -50,3 +50,7 @@ export interface StatsData {
   totalLinks: number
   totalCategories: number
 }
+
+export interface SiteSettings {
+  siteName: string
+}

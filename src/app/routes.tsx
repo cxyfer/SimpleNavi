@@ -9,6 +9,7 @@ const LinksPage = lazy(() => import('@/features/admin/LinksPage'))
 const CategoriesPage = lazy(() => import('@/features/admin/CategoriesPage'))
 const TagsPage = lazy(() => import('@/features/admin/TagsPage'))
 const StatsPage = lazy(() => import('@/features/admin/StatsPage'))
+const SettingsPage = lazy(() => import('@/features/admin/SettingsPage'))
 
 function Loading() {
   return (
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
       { path: 'links', element: withSuspense(LinksPage) },
       { path: 'categories', element: withSuspense(CategoriesPage) },
       { path: 'tags', element: withSuspense(TagsPage) },
+      { path: 'settings', element: withSuspense(SettingsPage) },
       { path: 'stats', element: withSuspense(StatsPage) },
     ],
   },

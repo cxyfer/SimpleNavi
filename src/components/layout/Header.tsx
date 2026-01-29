@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Search, Zap } from 'lucide-react'
+import { api } from '@/lib/api'
 import { ThemeToggle } from '@/features/theme/ThemeToggle'
 import { Input } from '@/components/ui/input'
 import { Container } from './Container'
@@ -10,6 +12,11 @@ interface HeaderProps {
 }
 
 export function Header({ searchQuery, onSearchChange }: HeaderProps) {
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: api.settings.get,
+  })
+
   return (
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-xl">
       {/* Top accent line */}
@@ -23,7 +30,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
             <div className="absolute inset-0 rounded-lg bg-primary/20 blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           </div>
           <span className="text-xl font-bold tracking-tight transition-colors duration-300 group-hover:text-primary">
-            SimpleNavi
+            {settings?.siteName || 'SimpleNavi'}
           </span>
         </Link>
 
