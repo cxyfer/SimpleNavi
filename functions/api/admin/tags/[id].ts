@@ -2,6 +2,19 @@ import type { Env } from '../../../_lib/types'
 import { json, error } from '../../../_lib/response'
 import type { Tag } from '../../../_lib/db'
 
+export const onRequestGet: PagesFunction<Env> = async (context) => {
+  const id = Number(context.params.id)
+  if (isNaN(id)) return error('Invalid ID', 400)
+
+  const tag = await context.env.DB.prepare('SELECT * FROM tags WHERE id = ?')
+    .bind(id)
+    .first<Tag>()
+
+  if (!tag) return error('Tag not found', 404)
+
+  return json(tag)
+}
+
 export const onRequestPut: PagesFunction<Env> = async (context) => {
   const id = Number(context.params.id)
   if (isNaN(id)) return error('Invalid ID', 400)

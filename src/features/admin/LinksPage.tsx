@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Reorder } from 'framer-motion'
 import { Plus, Pencil, Trash2, X, GripVertical } from 'lucide-react'
@@ -15,7 +15,7 @@ export default function LinksPage() {
   const [isNew, setIsNew] = useState(false)
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
   const [newTagName, setNewTagName] = useState('')
-  const [orderedLinks, setOrderedLinks] = useState<Link[]>([])
+  const [orderedByCategory, setOrderedByCategory] = useState<Record<number, Link[]>>({})
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -34,7 +34,14 @@ export default function LinksPage() {
     queryFn: api.admin.tags.list,
   })
 
-  const displayLinks = orderedLinks.length > 0 ? orderedLinks : (links || [])
+  const linksByCategory = useMemo(() => {
+    const grouped: Record<number, Link[]> = {}
+    for (const link of links || []) {
+      if (!grouped[link.category_id]) grouped[link.category_id] = []
+      grouped[link.category_id].push(link)
+    }
+    return grouped
+  }, [links])
 
   const createMutation = useMutation({
     mutationFn: api.admin.links.create,
@@ -42,7 +49,7 @@ export default function LinksPage() {
       queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
       setEditing(null)
       setIsNew(false)
-      setOrderedLinks([])
+      setOrderedByCategory({})
       toast({ title: '連結已新增' })
     },
     onError: (err: Error) => toast({ title: '新增失敗', description: err.message, variant: 'destructive' }),
@@ -53,7 +60,7 @@ export default function LinksPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
       setEditing(null)
-      setOrderedLinks([])
+      setOrderedByCategory({})
       toast({ title: '連結已更新' })
     },
     onError: (err: Error) => toast({ title: '更新失敗', description: err.message, variant: 'destructive' }),
@@ -63,7 +70,7 @@ export default function LinksPage() {
     mutationFn: api.admin.links.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
-      setOrderedLinks([])
+      setOrderedByCategory({})
       toast({ title: '連結已刪除' })
     },
     onError: (err: Error) => toast({ title: '刪除失敗', description: err.message, variant: 'destructive' }),
@@ -91,7 +98,7 @@ export default function LinksPage() {
     mutationFn: api.admin.links.reorder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
-      setOrderedLinks([])
+      setOrderedByCategory({})
       toast({ title: '排序已更新' })
     },
     onError: (err: Error) => toast({ title: '排序失敗', description: err.message, variant: 'destructive' }),
@@ -138,20 +145,23 @@ export default function LinksPage() {
     )
   }
 
-  const getCategoryName = (id: number) => categories?.find((c: Category) => c.id === id)?.name || ''
-
-  const handleReorder = (newOrder: Link[]) => {
-    setOrderedLinks(newOrder)
+  const handleReorder = (categoryId: number, newOrder: Link[]) => {
+    setOrderedByCategory(prev => ({ ...prev, [categoryId]: newOrder }))
   }
 
-  const handleSaveOrder = () => {
-    if (orderedLinks.length > 0) {
-      reorderMutation.mutate(orderedLinks.map(l => l.id))
+  const handleSaveOrder = (categoryId: number) => {
+    const ordered = orderedByCategory[categoryId]
+    if (ordered && ordered.length > 0) {
+      reorderMutation.mutate(ordered.map(l => l.id))
     }
   }
 
-  const hasOrderChanged = orderedLinks.length > 0 &&
-    JSON.stringify(orderedLinks.map(l => l.id)) !== JSON.stringify(links?.map(l => l.id))
+  const hasOrderChanged = (categoryId: number) => {
+    const ordered = orderedByCategory[categoryId]
+    const original = linksByCategory[categoryId]
+    return ordered && ordered.length > 0 &&
+      JSON.stringify(ordered.map(l => l.id)) !== JSON.stringify(original?.map(l => l.id))
+  }
 
   if (isLoading) return <div>載入中...</div>
 
@@ -159,16 +169,9 @@ export default function LinksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">連結管理</h1>
-        <div className="flex gap-2">
-          {hasOrderChanged && (
-            <Button onClick={handleSaveOrder} disabled={reorderMutation.isPending}>
-              儲存排序
-            </Button>
-          )}
-          <Button onClick={() => startEditing({} as Link, true)}>
-            <Plus className="h-4 w-4 mr-1" /> 新增連結
-          </Button>
-        </div>
+        <Button onClick={() => startEditing({} as Link, true)}>
+          <Plus className="h-4 w-4 mr-1" /> 新增連結
+        </Button>
       </div>
 
       {editing && (
@@ -256,40 +259,58 @@ export default function LinksPage() {
         </Card>
       )}
 
-      <div className="rounded-lg border">
-        <div className="border-b bg-muted/50 px-4 py-3 grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 text-sm font-medium">
-          <span className="w-6"></span>
-          <span>標題</span>
-          <span>分類</span>
-          <span>點擊</span>
-          <span className="text-right w-20">操作</span>
-        </div>
-        <Reorder.Group axis="y" values={displayLinks} onReorder={handleReorder} className="divide-y">
-          {displayLinks.map((link: Link) => (
-            <Reorder.Item
-              key={link.id}
-              value={link}
-              className="px-4 py-3 grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 items-center bg-background cursor-grab active:cursor-grabbing"
+      {categories?.map((category: Category) => {
+        const categoryLinks = orderedByCategory[category.id] || linksByCategory[category.id] || []
+        if (categoryLinks.length === 0) return null
+
+        return (
+          <div key={category.id} className="rounded-lg border">
+            <div className="border-b bg-muted/50 px-4 py-3 flex items-center justify-between">
+              <h2 className="font-semibold">{category.name}</h2>
+              {hasOrderChanged(category.id) && (
+                <Button size="sm" onClick={() => handleSaveOrder(category.id)} disabled={reorderMutation.isPending}>
+                  儲存排序
+                </Button>
+              )}
+            </div>
+            <div className="border-b bg-muted/30 px-4 py-2 grid grid-cols-[auto_1fr_auto_auto] gap-4 text-xs font-medium text-muted-foreground">
+              <span className="w-6"></span>
+              <span>標題</span>
+              <span>點擊</span>
+              <span className="text-right w-20">操作</span>
+            </div>
+            <Reorder.Group
+              axis="y"
+              values={categoryLinks}
+              onReorder={(newOrder) => handleReorder(category.id, newOrder)}
+              className="divide-y"
             >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <div className="font-medium">{link.title}</div>
-                <div className="text-sm text-muted-foreground truncate max-w-xs">{link.url}</div>
-              </div>
-              <span className="text-sm">{getCategoryName(link.category_id)}</span>
-              <span className="text-sm">{link.click_count}</span>
-              <div className="text-right w-20">
-                <Button variant="ghost" size="icon" onClick={() => startEditing(link, false)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(link.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </Reorder.Item>
-          ))}
-        </Reorder.Group>
-      </div>
+              {categoryLinks.map((link: Link) => (
+                <Reorder.Item
+                  key={link.id}
+                  value={link}
+                  className="px-4 py-3 grid grid-cols-[auto_1fr_auto_auto] gap-4 items-center bg-background cursor-grab active:cursor-grabbing"
+                >
+                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">{link.title}</div>
+                    <div className="text-sm text-muted-foreground truncate max-w-xs">{link.url}</div>
+                  </div>
+                  <span className="text-sm">{link.click_count}</span>
+                  <div className="text-right w-20">
+                    <Button variant="ghost" size="icon" onClick={() => startEditing(link, false)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(link.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
+          </div>
+        )
+      })}
     </div>
   )
 }

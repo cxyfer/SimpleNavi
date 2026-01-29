@@ -25,6 +25,7 @@ dist-ssr
 
 # Cloudflare
 wrangler.toml
+.wrangler/
 
 # AI Tools
 .ace-tool/
