@@ -21,6 +21,7 @@
   2. 網域 `<span>` 包裹在獨立 `<div>` 內
   3. 標籤區塊加上 `mt-2` 間距
 - **驗證**: VC2 (Grid 標籤獨立行)
+- [x] 已完成
 
 ### T3: List 模式響應式多列 - CategorySection
 - **檔案**: `src/features/links/CategorySection.tsx`
@@ -33,12 +34,14 @@
   +   : "grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
   ```
 - **驗證**: VC3 (List 響應式多列)
+- [x] 已完成
 
 ### T3.1: List 模式響應式多列 - CategoryPage
 - **檔案**: `src/features/links/CategoryPage.tsx`
 - **位置**: Line 110
 - **變更**: 與 T3 相同的 grid classes
 - **驗證**: VC4 (CategoryPage 一致性)
+- [x] 已完成
 
 ---
 

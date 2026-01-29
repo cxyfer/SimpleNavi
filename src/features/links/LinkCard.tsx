@@ -95,12 +95,14 @@ export function LinkCard({ link, viewMode }: LinkCardProps) {
         </div>
 
         <div className={cn(
-          "text-muted-foreground/60 font-mono text-xs flex items-center",
-          !isCompact ? "mt-3 gap-2" : "shrink-0 gap-3"
+          "text-muted-foreground/60 font-mono text-xs",
+          !isCompact ? "mt-3" : "shrink-0"
         )}>
-          <span className="truncate">{domain}</span>
+          <div>
+            <span className="truncate">{domain}</span>
+          </div>
           {link.tags && link.tags.length > 0 && !isCompact && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {link.tags.map((tag) => (
                 <TagBadge key={tag.id} name={tag.name} slug={tag.slug} />
               ))}

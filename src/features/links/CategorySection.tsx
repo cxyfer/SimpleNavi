@@ -32,7 +32,7 @@ export function CategorySection({ category, links, viewMode }: CategorySectionPr
         </span>
       </div>
       <div className={cn(
-        isGrid ? "grid gap-6 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-3"
+        isGrid ? "grid gap-6 sm:grid-cols-2 xl:grid-cols-3" : "grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       )}>
         {links.map((link) => (
           <LinkCard key={link.id} link={link} viewMode={viewMode} />

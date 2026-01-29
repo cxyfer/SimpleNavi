@@ -107,7 +107,7 @@ export default function CategoryPage() {
                     </p>
                   </div>
                 ) : (
-                  <div className={viewMode === 'grid' ? "grid gap-6 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-3"}>
+                  <div className={viewMode === 'grid' ? "grid gap-6 sm:grid-cols-2 xl:grid-cols-3" : "grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}>
                     {filteredLinks.map((link) => (
                       <LinkCard key={link.id} link={link} viewMode={viewMode} />
                     ))}
