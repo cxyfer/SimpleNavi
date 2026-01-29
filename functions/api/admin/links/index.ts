@@ -1,13 +1,24 @@
 import type { Env } from '../../../_lib/types'
 import { json, error } from '../../../_lib/response'
-import type { Link } from '../../../_lib/db'
+import type { Link, Tag } from '../../../_lib/db'
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
-  const { results } = await context.env.DB.prepare(
+  const { results: links } = await context.env.DB.prepare(
     'SELECT * FROM links ORDER BY category_id ASC, sort_order ASC, id ASC'
   ).all<Link>()
 
-  return json(results)
+  const { results: tags } = await context.env.DB.prepare(
+    `SELECT lt.link_id, t.* 
+     FROM link_tags lt
+     JOIN tags t ON lt.tag_id = t.id`
+  ).all<{ link_id: number } & Tag>()
+
+  const linksWithTags = links.map(link => ({
+    ...link,
+    tags: tags.filter(t => t.link_id === link.id).map(({ link_id, ...tag }) => tag)
+  }))
+
+  return json(linksWithTags)
 }
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {

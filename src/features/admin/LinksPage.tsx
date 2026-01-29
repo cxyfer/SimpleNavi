@@ -273,9 +273,10 @@ export default function LinksPage() {
                 </Button>
               )}
             </div>
-            <div className="border-b bg-muted/30 px-4 py-2 grid grid-cols-[auto_1fr_auto_auto] gap-4 text-xs font-medium text-muted-foreground">
+            <div className="border-b bg-muted/30 px-4 py-2 grid grid-cols-[auto_2fr_1fr_auto_auto] gap-4 text-xs font-medium text-muted-foreground">
               <span className="w-6"></span>
               <span>標題</span>
+              <span>標籤</span>
               <span>點擊</span>
               <span className="text-right w-20">操作</span>
             </div>
@@ -289,12 +290,19 @@ export default function LinksPage() {
                 <Reorder.Item
                   key={link.id}
                   value={link}
-                  className="px-4 py-3 grid grid-cols-[auto_1fr_auto_auto] gap-4 items-center bg-background cursor-grab active:cursor-grabbing"
+                  className="px-4 py-3 grid grid-cols-[auto_2fr_1fr_auto_auto] gap-4 items-center bg-background cursor-grab active:cursor-grabbing"
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <div className="font-medium">{link.title}</div>
                     <div className="text-sm text-muted-foreground truncate max-w-xs">{link.url}</div>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {link.tags?.map((tag) => (
+                      <span key={tag.id} className="inline-flex items-center rounded-sm bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        #{tag.name}
+                      </span>
+                    ))}
                   </div>
                   <span className="text-sm">{link.click_count}</span>
                   <div className="text-right w-20">
