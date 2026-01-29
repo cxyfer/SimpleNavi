@@ -12,21 +12,23 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   return json(settings)
 }
 
-export const onRequestPatch: PagesFunction<Env> = async (context) => {
+export const onRequestPut: PagesFunction<Env> = async (context) => {
   const body = await context.request.json<{
-    site_name?: string
+    siteName?: string
   }>().catch(() => null)
 
   if (!body) return error('Invalid request body', 400)
 
-  if (typeof body.site_name !== 'string') {
-    return error('Missing required field: site_name', 400)
+  if (typeof body.siteName !== 'string') {
+    return error('Missing required field: siteName', 400)
   }
 
-  if (body.site_name.length < SITE_NAME_MIN || body.site_name.length > SITE_NAME_MAX) {
-    return error('site_name must be between 2 and 50 characters', 400)
+  if (body.siteName.length < SITE_NAME_MIN || body.siteName.length > SITE_NAME_MAX) {
+    return error('siteName must be between 2 and 50 characters', 400)
   }
 
-  const settings = await updateSiteSettings(context.env.DB, body.site_name)
+  const settings = await updateSiteSettings(context.env.DB, body.siteName)
   return json(settings)
 }
+
+export const onRequestPatch: PagesFunction<Env> = onRequestPut
