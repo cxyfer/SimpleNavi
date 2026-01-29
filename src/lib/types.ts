@@ -53,6 +53,7 @@ export interface StatsData {
 
 export interface SiteSettings {
   siteName: string
+  siteSubtitle?: string
 }
 
 export type ViewMode = 'grid' | 'list'

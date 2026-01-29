@@ -35,6 +35,7 @@ export default function SettingsPage() {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const siteName = formData.get('siteName') as string
+    const siteSubtitle = formData.get('siteSubtitle') as string | null
 
     if (siteName.length < 2 || siteName.length > 50) {
       toast({
@@ -45,7 +46,16 @@ export default function SettingsPage() {
       return
     }
 
-    mutation.mutate({ siteName })
+    if (siteSubtitle && siteSubtitle.length > 100) {
+      toast({
+        title: '驗證錯誤',
+        description: '副標題長度不能超過 100 個字元',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    mutation.mutate({ siteName, siteSubtitle: siteSubtitle || undefined })
   }
 
   if (isLoading) {
@@ -75,6 +85,20 @@ export default function SettingsPage() {
               />
               <p className="text-sm text-muted-foreground">
                 顯示在瀏覽器標題和導航列的名稱
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="siteSubtitle">副標題（選填）</Label>
+              <Input
+                id="siteSubtitle"
+                name="siteSubtitle"
+                defaultValue={settings?.siteSubtitle}
+                placeholder="我的個人書籤管理"
+                maxLength={100}
+              />
+              <p className="text-sm text-muted-foreground">
+                顯示在站點名稱下方的簡短描述
               </p>
             </div>
 

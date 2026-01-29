@@ -1,14 +1,24 @@
 import { Moon, Sun, Monitor } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTheme } from './ThemeProvider'
+import { useToast } from '@/components/ui/use-toast'
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
+  const { toast } = useToast()
 
   const next = () => {
     const order: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system']
     const idx = order.indexOf(theme)
-    setTheme(order[(idx + 1) % order.length])
+    const newTheme = order[(idx + 1) % order.length]
+    setTheme(newTheme)
+
+    const themeNames = {
+      light: '明亮模式',
+      dark: '黑暗模式',
+      system: '跟隨系統'
+    }
+    toast({ title: `已切換到${themeNames[newTheme]}` })
   }
 
   return (

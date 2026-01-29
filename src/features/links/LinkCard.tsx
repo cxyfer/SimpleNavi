@@ -68,8 +68,11 @@ export function LinkCard({ link, viewMode }: LinkCardProps) {
         </AvatarFallback>
       </Avatar>
 
-      <div className={cn("flex-1 min-w-0", isCompact ? "flex items-center justify-between gap-4" : "pt-1")}>
-        <div className="min-w-0 flex-1">
+      <div className={cn("flex-1 min-w-0", isCompact ? "flex flex-col justify-center" : "pt-1")}>
+        <div className={cn(
+          "min-w-0",
+          isCompact ? "space-y-0.5" : "flex-1"
+        )}>
           <div className="flex items-center gap-2">
             <span className={cn(
               "font-semibold tracking-tight text-foreground transition-colors duration-300 group-hover:text-primary truncate",
@@ -77,38 +80,34 @@ export function LinkCard({ link, viewMode }: LinkCardProps) {
             )}>
               {link.title}
             </span>
-            <ExternalLink className={cn(
-              "shrink-0 text-muted-foreground transition-all duration-300 group-hover:text-primary",
-              !isCompact && "h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-80 group-hover:translate-x-0",
-              isCompact && "h-3.5 w-3.5 opacity-60"
-            )} />
+            {!isCompact && (
+              <ExternalLink className="shrink-0 h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:text-primary opacity-0 -translate-x-2 group-hover:opacity-80 group-hover:translate-x-0" />
+            )}
           </div>
-          {link.description && (
-            <p className={cn(
-              "text-muted-foreground",
-              !isCompact && "mt-2 text-sm line-clamp-2 leading-relaxed",
-              isCompact && "text-xs line-clamp-1"
-            )}>
+          {isCompact && (
+            <span className="text-xs text-muted-foreground font-mono truncate">
+              {domain}
+            </span>
+          )}
+          {!isCompact && link.description && (
+            <p className="mt-2 text-sm text-muted-foreground line-clamp-2 leading-relaxed">
               {link.description}
             </p>
           )}
         </div>
 
-        <div className={cn(
-          "text-muted-foreground/60 font-mono text-xs",
-          !isCompact ? "mt-3" : "shrink-0"
-        )}>
-          <div>
+        {!isCompact && (
+          <div className="mt-3 text-muted-foreground/60 font-mono text-xs">
             <span className="truncate">{domain}</span>
+            {link.tags && link.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {link.tags.map((tag) => (
+                  <TagBadge key={tag.id} name={tag.name} slug={tag.slug} />
+                ))}
+              </div>
+            )}
           </div>
-          {link.tags && link.tags.length > 0 && !isCompact && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {link.tags.map((tag) => (
-                <TagBadge key={tag.id} name={tag.name} slug={tag.slug} />
-              ))}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Bottom glow line - Grid mode only */}
