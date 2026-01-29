@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, X } from 'lucide-react'
+import { Reorder } from 'framer-motion'
+import { Plus, Pencil, Trash2, X, GripVertical } from 'lucide-react'
 import { api } from '@/lib/api'
 import type { Link, Category, Tag } from '@/lib/types'
 import { Button } from '@/components/ui/button'
@@ -14,6 +15,7 @@ export default function LinksPage() {
   const [isNew, setIsNew] = useState(false)
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
   const [newTagName, setNewTagName] = useState('')
+  const [orderedLinks, setOrderedLinks] = useState<Link[]>([])
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -32,12 +34,15 @@ export default function LinksPage() {
     queryFn: api.admin.tags.list,
   })
 
+  const displayLinks = orderedLinks.length > 0 ? orderedLinks : (links || [])
+
   const createMutation = useMutation({
     mutationFn: api.admin.links.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
       setEditing(null)
       setIsNew(false)
+      setOrderedLinks([])
       toast({ title: '連結已新增' })
     },
     onError: (err: Error) => toast({ title: '新增失敗', description: err.message, variant: 'destructive' }),
@@ -48,6 +53,7 @@ export default function LinksPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
       setEditing(null)
+      setOrderedLinks([])
       toast({ title: '連結已更新' })
     },
     onError: (err: Error) => toast({ title: '更新失敗', description: err.message, variant: 'destructive' }),
@@ -57,6 +63,7 @@ export default function LinksPage() {
     mutationFn: api.admin.links.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
+      setOrderedLinks([])
       toast({ title: '連結已刪除' })
     },
     onError: (err: Error) => toast({ title: '刪除失敗', description: err.message, variant: 'destructive' }),
@@ -78,6 +85,16 @@ export default function LinksPage() {
       setNewTagName('')
     },
     onError: (err: Error) => toast({ title: '標籤建立失敗', description: err.message, variant: 'destructive' }),
+  })
+
+  const reorderMutation = useMutation({
+    mutationFn: api.admin.links.reorder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'links'] })
+      setOrderedLinks([])
+      toast({ title: '排序已更新' })
+    },
+    onError: (err: Error) => toast({ title: '排序失敗', description: err.message, variant: 'destructive' }),
   })
 
   const startEditing = (link: Link, isNewLink: boolean) => {
@@ -123,15 +140,35 @@ export default function LinksPage() {
 
   const getCategoryName = (id: number) => categories?.find((c: Category) => c.id === id)?.name || ''
 
+  const handleReorder = (newOrder: Link[]) => {
+    setOrderedLinks(newOrder)
+  }
+
+  const handleSaveOrder = () => {
+    if (orderedLinks.length > 0) {
+      reorderMutation.mutate(orderedLinks.map(l => l.id))
+    }
+  }
+
+  const hasOrderChanged = orderedLinks.length > 0 &&
+    JSON.stringify(orderedLinks.map(l => l.id)) !== JSON.stringify(links?.map(l => l.id))
+
   if (isLoading) return <div>載入中...</div>
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">連結管理</h1>
-        <Button onClick={() => startEditing({} as Link, true)}>
-          <Plus className="h-4 w-4 mr-1" /> 新增連結
-        </Button>
+        <div className="flex gap-2">
+          {hasOrderChanged && (
+            <Button onClick={handleSaveOrder} disabled={reorderMutation.isPending}>
+              儲存排序
+            </Button>
+          )}
+          <Button onClick={() => startEditing({} as Link, true)}>
+            <Plus className="h-4 w-4 mr-1" /> 新增連結
+          </Button>
+        </div>
       </div>
 
       {editing && (
@@ -148,12 +185,12 @@ export default function LinksPage() {
                     id="category_id"
                     name="category_id"
                     defaultValue={editing.category_id}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground"
                     required
                   >
-                    <option value="">選擇分類</option>
+                    <option value="" className="bg-background text-foreground">選擇分類</option>
                     {categories?.map((c: Category) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
+                      <option key={c.id} value={c.id} className="bg-background text-foreground">{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -220,36 +257,38 @@ export default function LinksPage() {
       )}
 
       <div className="rounded-lg border">
-        <table className="w-full">
-          <thead className="border-b bg-muted/50">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium">標題</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">分類</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">點擊</th>
-              <th className="px-4 py-3 text-right text-sm font-medium">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {links?.map((link: Link) => (
-              <tr key={link.id} className="border-b last:border-0">
-                <td className="px-4 py-3">
-                  <div className="font-medium">{link.title}</div>
-                  <div className="text-sm text-muted-foreground truncate max-w-xs">{link.url}</div>
-                </td>
-                <td className="px-4 py-3 text-sm">{getCategoryName(link.category_id)}</td>
-                <td className="px-4 py-3 text-sm">{link.click_count}</td>
-                <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="icon" onClick={() => startEditing(link, false)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(link.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="border-b bg-muted/50 px-4 py-3 grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 text-sm font-medium">
+          <span className="w-6"></span>
+          <span>標題</span>
+          <span>分類</span>
+          <span>點擊</span>
+          <span className="text-right w-20">操作</span>
+        </div>
+        <Reorder.Group axis="y" values={displayLinks} onReorder={handleReorder} className="divide-y">
+          {displayLinks.map((link: Link) => (
+            <Reorder.Item
+              key={link.id}
+              value={link}
+              className="px-4 py-3 grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 items-center bg-background cursor-grab active:cursor-grabbing"
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <div className="font-medium">{link.title}</div>
+                <div className="text-sm text-muted-foreground truncate max-w-xs">{link.url}</div>
+              </div>
+              <span className="text-sm">{getCategoryName(link.category_id)}</span>
+              <span className="text-sm">{link.click_count}</span>
+              <div className="text-right w-20">
+                <Button variant="ghost" size="icon" onClick={() => startEditing(link, false)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(link.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </Reorder.Item>
+          ))}
+        </Reorder.Group>
       </div>
     </div>
   )

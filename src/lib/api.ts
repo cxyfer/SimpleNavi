@@ -58,6 +58,8 @@ export const api = {
           `/admin/links/${id}/tags`,
           { method: 'PUT', body: JSON.stringify({ tag_ids: tagIds }) }
         ),
+      reorder: (ids: number[]) =>
+        request<{ success: boolean }>('/admin/links/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
     },
     categories: {
       list: () => request<Category[]>('/admin/categories'),
@@ -66,6 +68,8 @@ export const api = {
       update: (id: number, data: Partial<Category>) =>
         request<Category>(`/admin/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
       delete: (id: number) => request<void>(`/admin/categories/${id}`, { method: 'DELETE' }),
+      reorder: (ids: number[]) =>
+        request<{ success: boolean }>('/admin/categories/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
     },
     tags: {
       list: () => request<Tag[]>('/admin/tags'),
@@ -74,6 +78,8 @@ export const api = {
       update: (id: number, data: Partial<Tag>) =>
         request<Tag>(`/admin/tags/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
       delete: (id: number) => request<void>(`/admin/tags/${id}`, { method: 'DELETE' }),
+      reorder: (ids: number[]) =>
+        request<{ success: boolean }>('/admin/tags/reorder', { method: 'PUT', body: JSON.stringify({ ids }) }),
     },
     stats: () => request<StatsData>('/admin/stats'),
   },

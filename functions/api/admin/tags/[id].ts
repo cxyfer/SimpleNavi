@@ -24,7 +24,7 @@ export const onRequestPut: PagesFunction<Env> = async (context) => {
 
   if (name.length > 50) return error('Tag name too long', 400)
 
-  if (!/^[a-z0-9-]+$/.test(slug)) return error('Invalid slug format', 400)
+  if (slug.length === 0 || slug.length > 100) return error('Invalid slug format', 400)
 
   if (slug !== existing.slug) {
     const duplicate = await context.env.DB.prepare('SELECT id FROM tags WHERE slug = ? AND id != ?')

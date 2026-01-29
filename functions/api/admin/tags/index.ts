@@ -4,7 +4,7 @@ import type { Tag } from '../../../_lib/db'
 
 export const onRequestGet: PagesFunction<Env> = async (context) => {
   const { results } = await context.env.DB.prepare(
-    'SELECT * FROM tags ORDER BY name ASC'
+    'SELECT * FROM tags ORDER BY sort_order ASC, id ASC'
   ).all<Tag>()
 
   return json(results)
@@ -24,9 +24,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return error('Tag name too long', 400)
   }
 
-  const slug = body.slug || body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  const slug = body.slug || body.name.toLowerCase().replace(/\s+/g, '-').replace(/^-+|-+$/g, '')
 
-  if (!/^[a-z0-9-]+$/.test(slug) || slug.length === 0) {
+  if (slug.length === 0 || slug.length > 100) {
     return error('Invalid slug format', 400)
   }
 

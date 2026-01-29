@@ -36,6 +36,7 @@ export interface Tag {
   id: number
   name: string
   slug: string
+  sort_order: number
   created_at: string
   updated_at: string
 }
@@ -83,7 +84,7 @@ export async function recordClick(db: Env['DB'], linkId: number): Promise<void> 
 
 export async function getActiveTags(db: Env['DB']): Promise<Tag[]> {
   const { results } = await db
-    .prepare('SELECT * FROM tags ORDER BY name ASC')
+    .prepare('SELECT * FROM tags ORDER BY sort_order ASC, id ASC')
     .all<Tag>()
   return results
 }
